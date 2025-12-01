@@ -28,8 +28,8 @@ const ClientForm: React.FC<{ client?: Client | null; onSubmit: (data: NewClient 
         email: client?.email || '',
         telefone: client?.telefone || '',
         endereco: client?.endereco || '',
-        limite_credito: client?.limite_credito || 0,
-        taxa_juros_mensal: client?.taxa_juros_mensal || 0,
+        limite_credito: client?.limite_credito !== undefined ? client.limite_credito.toString() : '',
+        taxa_juros_mensal: client?.taxa_juros_mensal !== undefined ? client.taxa_juros_mensal.toString() : '',
     });
     const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>({});
 
@@ -66,11 +66,13 @@ const ClientForm: React.FC<{ client?: Client | null; onSubmit: (data: NewClient 
             newErrors.email = 'Formato de email inválido.';
         }
         
-        if (isNaN(formData.limite_credito) || formData.limite_credito < 0) {
+        const limite = parseFloat(formData.limite_credito.toString());
+        if (formData.limite_credito !== '' && (isNaN(limite) || limite < 0)) {
             newErrors.limite_credito = 'O limite de crédito não pode ser negativo.';
         }
 
-        if (isNaN(formData.taxa_juros_mensal) || formData.taxa_juros_mensal < 0) {
+        const taxa = parseFloat(formData.taxa_juros_mensal.toString());
+        if (formData.taxa_juros_mensal !== '' && (isNaN(taxa) || taxa < 0)) {
             newErrors.taxa_juros_mensal = 'A taxa de juros não pode ser negativa.';
         }
 
@@ -90,8 +92,6 @@ const ClientForm: React.FC<{ client?: Client | null; onSubmit: (data: NewClient 
         
         if (name === 'cpf_cnpj') {
             setFormData({ ...formData, [name]: maskCpfCnpj(value) });
-        } else if (name === 'limite_credito' || name === 'taxa_juros_mensal') {
-            setFormData({ ...formData, [name]: parseFloat(value) || 0 });
         } else {
             setFormData({ ...formData, [name]: value });
         }
@@ -104,7 +104,14 @@ const ClientForm: React.FC<{ client?: Client | null; onSubmit: (data: NewClient 
             setErrors(validationErrors);
             return;
         }
-        const dataToSubmit = client ? { ...client, ...formData } : formData;
+
+        const preparedData = {
+            ...formData,
+            limite_credito: formData.limite_credito === '' ? 0 : parseFloat(formData.limite_credito.toString()),
+            taxa_juros_mensal: formData.taxa_juros_mensal === '' ? 0 : parseFloat(formData.taxa_juros_mensal.toString()),
+        };
+
+        const dataToSubmit = client ? { ...client, ...preparedData } : preparedData;
         onSubmit(dataToSubmit as NewClient | Client);
     };
 
