@@ -56,8 +56,12 @@ const OperationForm: React.FC<{
         const { nominalValue, taxa } = formData;
         if (nominalValue > 0 && taxa > 0) {
             const taxaDecimal = taxa / 100;
-            const calculatedNetValue = nominalValue / (1 + taxaDecimal);
+            // Cálculo ajustado: Valor Líquido = Nominal - (Nominal * Taxa)
+            const jurosCalculado = nominalValue * taxaDecimal;
+            const calculatedNetValue = nominalValue - jurosCalculado;
             setNetValue(calculatedNetValue);
+        } else if (nominalValue > 0) {
+            setNetValue(nominalValue);
         } else {
             setNetValue(0);
         }
@@ -163,7 +167,7 @@ const OperationForm: React.FC<{
                 </div>
                  <div className="md:col-span-2 grid grid-cols-2 gap-4 items-end">
                      <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Taxa de Desconto (%)</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Taxa de Juros (%)</label>
                         <input type="number" step="0.01" name="taxa" value={formData.taxa} onChange={handleChange} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-slate-100" />
                     </div>
                      <div key={netValueKey} className="bg-slate-900/50 p-3 rounded-lg text-center animate-flash-bg">

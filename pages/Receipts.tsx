@@ -29,6 +29,7 @@ const ReceiptForm: React.FC<{
     const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('pix');
     const [dataRecebimento, setDataRecebimento] = useState(new Date().toISOString().split('T')[0]);
     const [summaryKey, setSummaryKey] = useState(0);
+    const [isInterestOnly, setIsInterestOnly] = useState(false);
     const { addNotification } = useNotification();
     
     const selectedOperation = operations.find(op => op.id === parseInt(operationId));
@@ -57,6 +58,7 @@ const ReceiptForm: React.FC<{
             setTotalRecebido(total);
             setPrincipalPago(parseFloat(outstandingBalance.principal.toFixed(2)));
             setJurosPago(parseFloat(outstandingBalance.juros.toFixed(2)));
+            setIsInterestOnly(false); // Reset check on op change
         } else {
             // Reset form when no operation is selected
             setTotalRecebido(0);
@@ -65,33 +67,71 @@ const ReceiptForm: React.FC<{
         }
     }, [selectedOperation, outstandingBalance]);
     
+    // Watch for checkbox change
+    React.useEffect(() => {
+        if (isInterestOnly) {
+            setPrincipalPago(0);
+            setJurosPago(totalRecebido);
+        } else if (selectedOperation) {
+             // Recalculate default split if unchecked
+             // Logic mirrors handleTotalChange
+            if (outstandingBalance.total > 0) {
+                const cappedValue = Math.min(totalRecebido, outstandingBalance.total);
+                const jurosRatio = outstandingBalance.juros / outstandingBalance.total;
+                const allocatedJuros = parseFloat((cappedValue * jurosRatio).toFixed(2));
+                const allocatedPrincipal = parseFloat((cappedValue - allocatedJuros).toFixed(2));
+                setJurosPago(allocatedJuros);
+                setPrincipalPago(allocatedPrincipal);
+            }
+        }
+    }, [isInterestOnly, totalRecebido, outstandingBalance, selectedOperation]);
+
     const handleTotalChange = (value: number) => {
-        const cappedValue = Math.min(value, outstandingBalance.total);
+        // If Interest Only is checked, we don't cap against total balance necessarily, 
+        // as users might pay extra interest (fees). 
+        // But for consistency let's stick to the flow, maybe capping is still good UI but 
+        // usually interest only means paying the 'cost' without reducing principal.
+        
+        // For standard flow:
+        const cappedValue = isInterestOnly ? value : Math.min(value, outstandingBalance.total);
         setTotalRecebido(cappedValue);
 
-        if (outstandingBalance.total > 0) {
-            const jurosRatio = outstandingBalance.juros / outstandingBalance.total;
-            const allocatedJuros = parseFloat((cappedValue * jurosRatio).toFixed(2));
-            // The rest is principal to avoid rounding errors
-            const allocatedPrincipal = parseFloat((cappedValue - allocatedJuros).toFixed(2));
-            setJurosPago(allocatedJuros);
-            setPrincipalPago(allocatedPrincipal);
-        } else {
-            setJurosPago(0);
+        if (isInterestOnly) {
             setPrincipalPago(0);
+            setJurosPago(cappedValue);
+        } else {
+            if (outstandingBalance.total > 0) {
+                const jurosRatio = outstandingBalance.juros / outstandingBalance.total;
+                const allocatedJuros = parseFloat((cappedValue * jurosRatio).toFixed(2));
+                // The rest is principal to avoid rounding errors
+                const allocatedPrincipal = parseFloat((cappedValue - allocatedJuros).toFixed(2));
+                setJurosPago(allocatedJuros);
+                setPrincipalPago(allocatedPrincipal);
+            } else {
+                setJurosPago(0);
+                setPrincipalPago(0);
+            }
         }
     };
     
     const handlePrincipalChange = (value: number) => {
+        if (isInterestOnly) return; // Locked
         const cappedValue = Math.min(value, outstandingBalance.principal);
         setPrincipalPago(cappedValue);
         setTotalRecebido(parseFloat((cappedValue + jurosPago).toFixed(2)));
     }
 
     const handleJurosChange = (value: number) => {
-        const cappedValue = Math.min(value, outstandingBalance.juros);
-        setJurosPago(cappedValue);
-        setTotalRecebido(parseFloat((principalPago + cappedValue).toFixed(2)));
+        // We allow editing Juros manually. 
+        // If InterestOnly is checked, Juros = Total, so changing Juros changes Total.
+        if (isInterestOnly) {
+            setJurosPago(value);
+            setTotalRecebido(value);
+        } else {
+            const cappedValue = Math.min(value, outstandingBalance.juros);
+            setJurosPago(cappedValue);
+            setTotalRecebido(parseFloat((principalPago + cappedValue).toFixed(2)));
+        }
     }
 
 
@@ -160,13 +200,34 @@ const ReceiptForm: React.FC<{
                         <option value="transferencia">Transferência</option>
                     </select>
                 </div>
+                
+                {/* Interest Only Checkbox */}
+                 <div className="md:col-span-2 flex items-center gap-2 bg-slate-800/50 p-3 rounded-md border border-slate-700/50">
+                    <input 
+                        type="checkbox" 
+                        id="interestOnly" 
+                        checked={isInterestOnly} 
+                        onChange={(e) => setIsInterestOnly(e.target.checked)}
+                        className="w-4 h-4 text-brand-600 bg-slate-700 border-slate-600 rounded focus:ring-brand-500 focus:ring-2"
+                    />
+                    <label htmlFor="interestOnly" className="text-sm font-medium text-slate-200 cursor-pointer select-none">
+                        Amortizar apenas Juros (Não abater do Principal)
+                    </label>
+                </div>
 
                 <div className="bg-slate-900/50 p-4 rounded-lg md:col-span-2">
                     <h4 className="font-semibold text-slate-200 mb-2">Alocação de Valores (Ajuste se necessário)</h4>
                     <div className="grid grid-cols-2 gap-4">
                          <div>
                             <label className="block text-xs font-medium text-slate-400 mb-1">Principal Pago (R$)</label>
-                            <input type="number" step="0.01" value={principalPago} onChange={e => handlePrincipalChange(parseFloat(e.target.value) || 0)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-slate-100" />
+                            <input 
+                                type="number" 
+                                step="0.01" 
+                                value={principalPago} 
+                                onChange={e => handlePrincipalChange(parseFloat(e.target.value) || 0)} 
+                                disabled={isInterestOnly}
+                                className={`w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-slate-100 ${isInterestOnly ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                            />
                         </div>
                          <div>
                             <label className="block text-xs font-medium text-slate-400 mb-1">Juros Pagos (R$)</label>
