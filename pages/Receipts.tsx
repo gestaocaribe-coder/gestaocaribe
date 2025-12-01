@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import { CreditCard, Trash2 } from 'lucide-react';
+import { CreditCard, Trash2, Calendar, Banknote } from 'lucide-react';
 import type { Recebimento, NewRecebimento, Operation, FormaPagamento } from '../types';
 import { formatDate, formatCurrency } from '../lib/utils';
 import { useNotification } from '../components/Notification';
@@ -219,20 +220,21 @@ const ReceiptsPage: React.FC<ReceiptsPageProps> = ({ receipts, operations, onAdd
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
             <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div className="text-center sm:text-left">
-                    <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Recebimentos</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">Recebimentos</h1>
                     <p className="text-slate-400 mt-1">Registre e consulte os pagamentos recebidos.</p>
                 </div>
-                <button onClick={() => setIsFormModalOpen(true)} className="flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-brand-700 transition self-center sm:self-auto">
+                <button onClick={() => setIsFormModalOpen(true)} className="flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-brand-700 transition w-full sm:w-auto">
                     <CreditCard className="w-5 h-5" />
                     <span>Novo Recebimento</span>
                 </button>
             </header>
 
-            <Card>
-                <div className="overflow-x-auto">
+            <Card padding="p-4 sm:p-6">
+                 {/* Desktop View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="border-b border-slate-700 text-sm text-slate-400">
                             <tr>
@@ -281,6 +283,51 @@ const ReceiptsPage: React.FC<ReceiptsPageProps> = ({ receipts, operations, onAdd
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden space-y-4">
+                    {receipts.length > 0 ? receipts.map(receipt => {
+                        const opInfo = getOperationInfo(receipt.operationId);
+                        return (
+                            <div key={receipt.id} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex flex-col gap-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-semibold text-slate-100">{opInfo?.clientName}</h3>
+                                        <p className="text-sm text-slate-400 font-mono">Op. {opInfo?.titleNumber}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-xs text-slate-500">{formatDate(receipt.data_recebimento)}</span>
+                                        <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full text-slate-300 capitalize mt-1">{receipt.forma_pagamento}</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-900/30 p-3 rounded-md grid grid-cols-2 gap-3 text-sm">
+                                     <div>
+                                        <p className="text-xs text-slate-500">Total Recebido</p>
+                                        <p className="font-mono text-emerald-400 font-bold">{formatCurrency(receipt.valor_total_recebido)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <button onClick={() => openConfirmDeleteModal(receipt.id)} className="p-2 bg-slate-800 rounded text-red-400 hover:text-red-300">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="col-span-2 flex justify-between text-xs border-t border-slate-800 pt-2 mt-1">
+                                        <span>Principal: {formatCurrency(receipt.valor_principal_pago)}</span>
+                                        <span>Juros: {formatCurrency(receipt.valor_juros_pago)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }) : (
+                        <EmptyState 
+                            icon={<CreditCard className="w-8 h-8" />}
+                            title="Nenhum recebimento"
+                            description="Nenhum pagamento registrado."
+                            actionText="Novo Recebimento"
+                            onActionClick={() => setIsFormModalOpen(true)}
+                        />
+                    )}
                 </div>
             </Card>
 

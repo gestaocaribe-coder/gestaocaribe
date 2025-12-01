@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import { ArrowRightLeft, CheckCircle2, CreditCard, Trash2, Search, ListFilter } from 'lucide-react';
+import { ArrowRightLeft, CheckCircle2, CreditCard, Trash2, Search, ListFilter, Calendar } from 'lucide-react';
 import type { Operation, NewOperation, Client, OperationStatus } from '../types';
 import { formatDate, formatCurrency } from '../lib/utils';
 import { useNotification } from '../components/Notification';
@@ -247,19 +248,19 @@ const OperationsPage: React.FC<OperationsPageProps> = ({ operations, clients, on
     };
 
     return (
-         <div className="space-y-8">
+         <div className="space-y-6 sm:space-y-8">
             <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div className="text-center sm:text-left">
-                    <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Operações</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">Operações</h1>
                     <p className="text-slate-400 mt-1">Lançamento e controle de desconto de títulos.</p>
                 </div>
-                <button onClick={() => setIsFormModalOpen(true)} className="flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-brand-700 transition self-center sm:self-auto">
+                <button onClick={() => setIsFormModalOpen(true)} className="flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-brand-700 transition w-full sm:w-auto">
                     <ArrowRightLeft className="w-5 h-5" />
                     <span>Nova Operação</span>
                 </button>
             </header>
-            <Card>
-                 <div className="p-4 border-b border-slate-700 flex flex-col sm:flex-row gap-4">
+            <Card padding="p-4 sm:p-6">
+                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-4">
                     <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -267,7 +268,7 @@ const OperationsPage: React.FC<OperationsPageProps> = ({ operations, clients, on
                             placeholder="Buscar por cliente, título..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-900/50 border border-slate-600 rounded-md py-2 pl-10 pr-4 text-slate-100"
+                            className="w-full bg-slate-900/50 border border-slate-600 rounded-md py-2 pl-10 pr-4 text-slate-100 placeholder-slate-500"
                         />
                     </div>
                     <div className="relative">
@@ -284,7 +285,9 @@ const OperationsPage: React.FC<OperationsPageProps> = ({ operations, clients, on
                         </select>
                     </div>
                 </div>
-                 <div className="overflow-x-auto">
+                
+                {/* Desktop View */}
+                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="border-b border-slate-700 text-sm text-slate-400">
                             <tr>
@@ -352,6 +355,74 @@ const OperationsPage: React.FC<OperationsPageProps> = ({ operations, clients, on
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden space-y-4">
+                    {filteredOperations.length > 0 ? filteredOperations.map(op => (
+                         <div key={op.id} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex flex-col gap-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-semibold text-slate-100">{op.clientName}</h3>
+                                    <p className="text-sm text-slate-400 font-mono capitalize">{op.type} • {op.titleNumber}</p>
+                                </div>
+                                <select
+                                    value={op.status}
+                                    onChange={(e) => handleStatusChangeRequest(op.id, e.target.value as OperationStatus)}
+                                    className={`capitalize border rounded-full px-2 py-1 text-xs font-medium appearance-none outline-none focus:ring-2 ${statusClasses[op.status]}`}
+                                >
+                                    <option className="bg-slate-800 text-slate-300" value="aberto">Aberto</option>
+                                    <option className="bg-slate-800 text-slate-300" value="pago">Pago</option>
+                                    <option className="bg-slate-800 text-slate-300" value="atrasado">Atrasado</option>
+                                </select>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm bg-slate-900/30 p-3 rounded-md">
+                                <div>
+                                    <p className="text-xs text-slate-500">Vencimento</p>
+                                    <div className="flex items-center gap-1 text-slate-200">
+                                        <Calendar className="w-3 h-3" />
+                                        {formatDate(op.dueDate)}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs text-slate-500">Valor Nominal</p>
+                                    <p className="font-mono text-slate-200">{formatCurrency(op.nominalValue)}</p>
+                                </div>
+                                 <div>
+                                    <p className="text-xs text-slate-500">Taxa</p>
+                                    <p className="text-slate-200">{op.taxa}%</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs text-slate-500">Valor Líquido</p>
+                                    <p className="font-mono text-emerald-400 font-semibold">{formatCurrency(op.netValue)}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/50">
+                                {op.status !== 'pago' && (
+                                    <button 
+                                        onClick={() => setActivePage('Recebimentos')}
+                                        className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600/20 text-emerald-400 text-sm font-semibold px-3 py-2 rounded-md hover:bg-emerald-600/40"
+                                    >
+                                        <CreditCard className="w-4 h-4"/>
+                                        Receber
+                                    </button>
+                                )}
+                                <button onClick={() => openDeleteModal(op.id)} className="p-2 bg-slate-700/50 rounded-lg text-red-400 hover:text-red-300 transition-colors">
+                                    <Trash2 className="w-5 h-5"/>
+                                </button>
+                            </div>
+                        </div>
+                    )) : (
+                         <EmptyState 
+                            icon={<ArrowRightLeft className="w-8 h-8" />}
+                            title="Nenhuma operação encontrada"
+                            description="Tente ajustar os filtros ou adicione uma nova operação."
+                            actionText="Registrar Nova Operação"
+                            onActionClick={() => setIsFormModalOpen(true)}
+                          />
+                    )}
                 </div>
             </Card>
 

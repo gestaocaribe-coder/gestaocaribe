@@ -24,6 +24,9 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [preselectedClientId, setPreselectedClientId] = useState<number | null>(null);
   const [dismissedReminderIds, setDismissedReminderIds] = useLocalStorageState<number[]>('dismissedReminders', []);
+  
+  // Mobile Menu State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setOperations(prevOps => {
@@ -230,6 +233,11 @@ const App: React.FC = () => {
     setDismissedReminderIds(prev => [...prev, reminderId]);
   }, [setDismissedReminderIds]);
 
+  // Close mobile menu when page changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activePage]);
+
   const renderPage = () => {
     if (!currentUser) return null;
 
@@ -299,13 +307,16 @@ const App: React.FC = () => {
         operationsCount={operations.length}
         receiptsCount={receipts.length}
         user={currentUser}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         <Header 
           user={currentUser} 
           onLogout={handleLogout} 
           reminders={activeReminders}
           onDismissReminder={handleDismissReminder}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {renderPage()}

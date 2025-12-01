@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import { Users, UserPlus, Eye, Pencil, Trash2, Search, TrendingUp, CircleDollarSign, TriangleAlert, CreditCard } from 'lucide-react';
+import { Users, UserPlus, Eye, Pencil, Trash2, Search, TrendingUp, CircleDollarSign, TriangleAlert, CreditCard, Phone, Mail, MapPin } from 'lucide-react';
 import type { ClientWithOperationCount, NewClient, Client, Operation, Recebimento } from '../types';
 import { formatDate, formatCurrency } from '../lib/utils';
 import { differenceInDays, parseISO, isToday, isPast } from 'date-fns';
@@ -270,20 +271,20 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
             <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div className="text-center sm:text-left">
-                    <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Clientes</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">Clientes</h1>
                     <p className="text-slate-400 mt-1">Gerencie sua carteira de clientes.</p>
                 </div>
-                <button onClick={openAddModal} className="flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-brand-700 transition self-center sm:self-auto">
+                <button onClick={openAddModal} className="flex items-center justify-center gap-2 bg-brand-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-brand-700 transition w-full sm:w-auto">
                     <UserPlus className="w-5 h-5" />
                     <span>Novo Cliente</span>
                 </button>
             </header>
             
-            <Card>
-                <div className="p-4 border-b border-slate-700">
+            <Card padding="p-4 sm:p-6">
+                <div className="mb-4 sm:mb-6">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -291,11 +292,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
                             placeholder="Buscar por nome, CPF/CNPJ, email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-900/50 border border-slate-600 rounded-md py-2 pl-10 pr-4 text-slate-100"
+                            className="w-full bg-slate-900/50 border border-slate-600 rounded-md py-2 pl-10 pr-4 text-slate-100 placeholder-slate-500"
                         />
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="border-b border-slate-700 text-sm text-slate-400">
                             <tr>
@@ -343,6 +346,51 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden space-y-4">
+                    {filteredClients.length > 0 ? filteredClients.map(client => (
+                        <div key={client.id} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex flex-col gap-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-semibold text-slate-100 text-lg">{client.nome}</h3>
+                                    <p className="text-sm text-slate-400 font-mono">{client.cpf_cnpj}</p>
+                                </div>
+                                <div className="flex gap-1">
+                                    <button onClick={() => openViewModal(client)} className="p-2 bg-slate-700/50 rounded-lg text-brand-400"><Eye className="w-4 h-4"/></button>
+                                    <button onClick={() => openEditModal(client)} className="p-2 bg-slate-700/50 rounded-lg text-amber-400"><Pencil className="w-4 h-4"/></button>
+                                    <button onClick={() => openDeleteModal(client.id)} className="p-2 bg-slate-700/50 rounded-lg text-red-400"><Trash2 className="w-4 h-4"/></button>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 text-sm text-slate-300">
+                                <div className="flex items-center gap-2">
+                                    <CreditCard className="w-4 h-4 text-slate-500" />
+                                    <span>{client.operationCount} Operações</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-slate-500" />
+                                    <span>Taxa: {client.taxa_juros_mensal.toFixed(2)}%</span>
+                                </div>
+                            </div>
+
+                            {(client.email || client.telefone) && (
+                                <div className="pt-2 border-t border-slate-700/50 flex flex-col gap-1 text-sm text-slate-400">
+                                    {client.email && <div className="flex items-center gap-2"><Mail className="w-3 h-3"/> {client.email}</div>}
+                                    {client.telefone && <div className="flex items-center gap-2"><Phone className="w-3 h-3"/> {client.telefone}</div>}
+                                </div>
+                            )}
+                        </div>
+                    )) : (
+                        <EmptyState
+                            icon={<Users className="w-8 h-8"/>}
+                            title="Nenhum cliente encontrado"
+                            description="Tente buscar por outro termo ou cadastre um novo cliente."
+                            actionText="Adicionar Cliente"
+                            onActionClick={openAddModal}
+                        />
+                    )}
+                </div>
             </Card>
 
             <ConfirmModal
@@ -362,12 +410,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
                    <div className="space-y-6">
                         <div>
                             <h3 className="font-semibold text-lg text-brand-400 mb-2">Detalhes do Cliente</h3>
-                            <div className="grid grid-cols-2 gap-4 text-sm bg-slate-900/50 p-4 rounded-lg">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-900/50 p-4 rounded-lg">
                                 <p><strong className="text-slate-400 block">CPF/CNPJ:</strong> {selectedClient.cpf_cnpj}</p>
                                 <p><strong className="text-slate-400 block">Cadastro:</strong> {formatDate(selectedClient.data_cadastro)}</p>
                                 <p><strong className="text-slate-400 block">Email:</strong> {selectedClient.email || 'N/A'}</p>
                                 <p><strong className="text-slate-400 block">Telefone:</strong> {selectedClient.telefone || 'N/A'}</p>
-                                <p className="col-span-2"><strong className="text-slate-400 block">Endereço:</strong> {selectedClient.endereco || 'N/A'}</p>
+                                <p className="sm:col-span-2"><strong className="text-slate-400 block">Endereço:</strong> {selectedClient.endereco || 'N/A'}</p>
                                 <p><strong className="text-slate-400 block">Limite de Crédito:</strong> {formatCurrency(selectedClient.limite_credito)}</p>
                                 <p><strong className="text-slate-400 block">Taxa Padrão:</strong> {selectedClient.taxa_juros_mensal.toFixed(2)}%</p>
                             </div>
@@ -376,16 +424,16 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
                          {clientStats && (
                             <div>
                                 <h3 className="font-semibold text-lg text-brand-400 mb-2">Resumo Financeiro</h3>
-                                <div className="grid grid-cols-3 gap-4 text-center bg-slate-900/50 p-4 rounded-lg">
-                                    <div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center bg-slate-900/50 p-4 rounded-lg">
+                                    <div className="p-2 sm:p-0 border-b sm:border-b-0 border-slate-700/50 last:border-0">
                                         <p className="flex items-center justify-center gap-2 text-sm text-slate-400"><TrendingUp className="w-4 h-4" /> Capital Aplicado</p>
                                         <p className="font-bold text-lg text-slate-100">{formatCurrency(clientStats.totalAplicado)}</p>
                                     </div>
-                                    <div>
+                                    <div className="p-2 sm:p-0 border-b sm:border-b-0 border-slate-700/50 last:border-0">
                                         <p className="flex items-center justify-center gap-2 text-sm text-slate-400"><CircleDollarSign className="w-4 h-4" /> Saldo Devedor</p>
                                         <p className="font-bold text-lg text-amber-400">{formatCurrency(clientStats.totalDivida)}</p>
                                     </div>
-                                    <div>
+                                    <div className="p-2 sm:p-0">
                                         <p className="flex items-center justify-center gap-2 text-sm text-slate-400"><TriangleAlert className="w-4 h-4" /> Valor Atrasado</p>
                                         <p className="font-bold text-lg text-red-400">{formatCurrency(clientStats.totalAtrasado)}</p>
                                     </div>
@@ -395,9 +443,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
 
                         <div>
                             <h3 className="font-semibold text-lg text-brand-400 mb-2">Histórico de Operações</h3>
-                             <div className="overflow-y-auto max-h-60 bg-slate-900/50 p-2 rounded-lg">
+                             <div className="overflow-x-auto max-h-60 bg-slate-900/50 p-2 rounded-lg">
                                 {clientOperations.length > 0 ? (
-                                    <table className="w-full text-sm">
+                                    <table className="w-full text-sm min-w-[600px]">
                                         <thead className="text-slate-400">
                                             <tr>
                                                 <th className="p-2 text-left">Título</th>
@@ -433,9 +481,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, operations, receipts
                         
                         <div>
                             <h3 className="font-semibold text-lg text-brand-400 mb-2">Histórico de Recebimentos</h3>
-                             <div className="overflow-y-auto max-h-60 bg-slate-900/50 p-2 rounded-lg">
+                             <div className="overflow-x-auto max-h-60 bg-slate-900/50 p-2 rounded-lg">
                                 {clientReceipts.length > 0 ? (
-                                    <table className="w-full text-sm">
+                                    <table className="w-full text-sm min-w-[500px]">
                                         <thead className="text-slate-400">
                                             <tr>
                                                 <th className="p-2 text-left">Data</th>

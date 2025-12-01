@@ -1,8 +1,7 @@
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { User, Reminder } from '../types';
-import { Briefcase, UserCircle, LogOut, Bell, X } from 'lucide-react';
+import { Briefcase, UserCircle, LogOut, Bell, X, Menu } from 'lucide-react';
 import { differenceInDays, parseISO, isToday } from 'date-fns';
 import { formatCurrency } from '../lib/utils';
 
@@ -12,9 +11,10 @@ interface HeaderProps {
     onLogout: () => void;
     reminders: Reminder[];
     onDismissReminder: (reminderId: number) => void;
+    onMenuClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout, reminders, onDismissReminder }) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout, reminders, onDismissReminder, onMenuClick }) => {
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -40,12 +40,21 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, reminders, onDismissRem
     };
 
     return (
-        <header className="bg-slate-900/70 backdrop-blur-sm border-b border-slate-800 p-4 flex items-center justify-between gap-3">
+        <header className="bg-slate-900/70 backdrop-blur-sm border-b border-slate-800 p-4 flex items-center justify-between gap-3 sticky top-0 z-20">
             <div className="flex items-center gap-3">
-                <Briefcase className="w-7 h-7 text-brand-400"/>
-                <h1 className="text-xl font-bold text-slate-100 tracking-tight">
-                    Caribé Factoring
-                </h1>
+                <button 
+                    onClick={onMenuClick}
+                    className="p-1 -ml-1 text-slate-400 hover:text-white lg:hidden"
+                    aria-label="Abrir menu"
+                >
+                    <Menu className="w-7 h-7" />
+                </button>
+                <div className="flex items-center gap-2">
+                    <Briefcase className="w-6 h-6 sm:w-7 sm:h-7 text-brand-400"/>
+                    <h1 className="text-lg sm:text-xl font-bold text-slate-100 tracking-tight truncate max-w-[150px] sm:max-w-none">
+                        Caribé Factoring
+                    </h1>
+                </div>
             </div>
             <div className="flex items-center gap-2">
                 <div ref={popoverRef} className="relative">
@@ -62,11 +71,11 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, reminders, onDismissRem
                         )}
                     </button>
                     {isPopoverOpen && (
-                         <div className="absolute top-12 right-0 w-80 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-20 animate-fade-in-up">
+                         <div className="absolute top-12 right-[-60px] sm:right-0 w-[90vw] sm:w-80 max-w-sm bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-30 animate-fade-in-up">
                             <div className="p-3 border-b border-slate-700">
                                 <h3 className="font-semibold text-slate-200">Lembretes de Vencimento</h3>
                             </div>
-                            <div className="max-h-96 overflow-y-auto">
+                            <div className="max-h-80 sm:max-h-96 overflow-y-auto">
                                {reminders.length > 0 ? (
                                     <ul>
                                         {reminders.map(reminder => (
@@ -94,12 +103,12 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, reminders, onDismissRem
                         </div>
                     )}
                 </div>
-                 <div className="h-8 w-px bg-slate-700 mx-2"></div>
-                <div className="text-right">
+                 <div className="h-8 w-px bg-slate-700 mx-2 hidden sm:block"></div>
+                <div className="text-right hidden sm:block">
                     <p className="font-semibold text-slate-200 text-sm">{user.nome}</p>
                     <p className="text-xs text-slate-400">{user.papel}</p>
                 </div>
-                <UserCircle className="w-10 h-10 text-slate-500" />
+                <UserCircle className="w-8 h-8 sm:w-10 sm:h-10 text-slate-500 hidden sm:block" />
                 <button 
                   onClick={onLogout} 
                   className="p-2 text-slate-400 hover:text-red-400 rounded-full transition-colors duration-200" 
